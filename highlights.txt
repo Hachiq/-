@@ -1,0 +1,257 @@
+// ==UserScript==
+// @name         New Userscript
+// @namespace    http://tampermonkey.net/
+// @version      2025-03-03
+// @description  try to take over the world!
+// @author       You
+// @match        https://web.whatsapp.com/
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=whatsapp.com
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Список шаблонів тексту для Мулхолланд та Джексон
+    const templates = {
+        mulholland: [
+            "Reporting, a car seen entering the property.",
+            "Reporting, the car seen leaving the property.",
+            "Reporting, the person seen entering the property.",
+            "Reporting, the person seen leaving the property.",
+            "Updating, the person seen returning to the property.",
+            "Reporting, the person seen operating in this area.",
+            "Reporting, a coyote seen in this area.",
+            "Reporting, a delivery person seen leaving a parcel in the area.",
+            "Reporting, the delivery person seen leaving a parcel near the entrance.",
+            "Reporting, a delivery truck seen leaving the property.",
+            "Reporting, a delivery truck seen entering the property."
+        ],
+        jackson: [
+            "Reporting, a person seen loitering in this area. ",
+            "Reporting, a suspicious person seen in this area. ",
+            "Reporting, a suspicious person seen near the flowerbed. ",
+            "Reporting, a suspicious person seen near the main entrance. ",
+            "Reporting, a suspicious person seen near the black glassed door. ",
+            "Reporting, a suspicious person seen near the white glassed door. ",
+            "Speakers were used.",
+            "Speakers were used and the person left immediately.",
+        ]
+    };
+
+    // Функція для вставки тексту в правильне поле
+    function insertTextIntoChat(text) {
+        // Get all contenteditable fields
+        const inputFields = document.querySelectorAll('[contenteditable="true"]');
+
+        let inputField;
+
+        // Check if the media caption input is active (not in the footer)
+        for (const field of inputFields) {
+            const parent = field.closest('#app > div > div.x78zum5.xdt5ytf.x5yr21d > div > div.x10l6tqk.x13vifvy.x17qophe.x78zum5.xh8yej3.x5yr21d.x6ikm8r.x10wlt62.x47corl > div.x9f619.x1n2onr6.x5yr21d.x6ikm8r.x10wlt62.x17dzmu4.x1i1dayz.x2ipvbc.x1w8yi2h.xyyilfv.x1iyjqo2.xa1v5g2'); // Media caption input is inside a dialog
+            if (parent) {
+                inputField = field; // Media caption input found
+                break;
+            }
+        }
+
+        // Fallback: If no media caption field, use the regular chat input
+        if (!inputField) {
+            inputField = document.querySelector('footer [contenteditable="true"]');
+        }
+
+        if (inputField) {
+            inputField.focus();
+            document.execCommand('insertText', false, text);
+        } else {
+            console.error("WhatsApp input field not found!");
+        }
+    }
+
+    // Функція для створення і додавання кнопки
+    function addCustomButton() {
+        // Знаходимо контейнер кнопок в панелі інструментів
+        const toolbar = document.querySelector("#app > div > div.x78zum5.xdt5ytf.x5yr21d > div > header > div > div > div > div > span > div > div:nth-child(1)"); // May need to change selector
+
+        if (toolbar) {
+            const button = document.createElement('button');
+            button.classList.add(
+                'x78zum5', 'x6s0dn4', 'x1afcbsf', 'x1heor9g', 'x1y1aw1k', 'x1sxyh0', 'xwib8y2', 'xurb0ha'
+            );
+            button.setAttribute('aria-label', 'Custom Button');
+            button.setAttribute('title', 'Click Me');
+            button.style.cssText = `
+                border-radius: 50%;
+                border: none;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            `;
+
+            const icon = document.createElement('span');
+            icon.classList.add('xdt5ytf', 'x1cy8zhl', 'x5yr21d');
+            icon.innerHTML =
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="white">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+            </svg>`;
+            button.appendChild(icon);
+
+            const popup = document.createElement('div');
+            popup.style.cssText = `
+               position: fixed;
+               display: none;
+               top: 20%;
+               left: 50%;
+               transform: translate(-50%, -50%);
+               z-index: 9999999;
+               width: 500px;
+               text-align: center;
+               box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+            `;
+
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = "✖"; // Close icon
+            closeBtn.style.cssText = `
+                position: absolute;
+                z-index: 999;
+                top: 5px;
+                right: 25px;
+                background: transparent;
+                border: none;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+                color: red;
+            `;
+
+            closeBtn.onclick = () => {
+                popup.style.display = 'none';
+            };
+
+            const dropdown = document.createElement('div');
+            dropdown.style.cssText = `
+               position: absolute;
+               display: block;
+               background-color: #141b21;
+               border: 1px solid #ddd;
+               border-radius: 8px;
+               padding: 15px;
+               padding-top: 35px;
+               //z-index: 1000;
+               max-height: 300px;
+               overflow-y: auto;
+               box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+               transition: all 0.3s ease;
+               width: 100%;
+               box-sizing: border-box;
+            `;
+
+            const select = document.createElement('select');
+            select.style.cssText = `
+                margin-bottom: 10px;
+                padding: 8px;
+                width: 100%;
+                border-radius: 6px;
+                border: 1px solid #ddd;
+                color: white;
+            `;
+
+            const none = document.createElement('option');
+            none.value = 'empty';
+            none.textContent = 'Select';
+            select.appendChild(none);
+
+            const mulhollandOption = document.createElement('option');
+            mulhollandOption.value = 'mulholland';
+            mulhollandOption.textContent = '14175 Mulholland';
+            select.appendChild(mulhollandOption);
+
+            const jacksonOption = document.createElement('option');
+            jacksonOption.value = 'jackson';
+            jacksonOption.textContent = '1029 Jackson';
+            select.appendChild(jacksonOption);
+
+            select.addEventListener('change', (event) => {
+                updateDropdown(event.target.value);
+            });
+
+            dropdown.appendChild(select);
+
+
+            popup.appendChild(closeBtn);
+            popup.appendChild(dropdown);
+            document.body.appendChild(popup);
+
+            // Оновлення шаблонів в залежності від вибору
+            function updateDropdown(option) {
+                const templatesList = templates[option];
+                dropdown.querySelectorAll('.template-item').forEach(item => item.remove()); // Очищаємо список
+
+                const keywordColors = {
+                    car: 'blue',
+                    person: 'olive',
+                    leaving: 'red',
+                    entering: 'green',
+                };
+
+                templatesList.forEach(template => {
+                    const item = document.createElement('div');
+                    item.classList.add('template-item');
+
+                    // Replace keywords with spans for highlighting with different colors
+                    const highlightedTemplate = Object.keys(keywordColors).reduce((text, keyword) => {
+                        const regex = new RegExp(`\\b(${keyword})\\b`, 'gi'); // \b to match whole words, gi for case insensitive
+                        return text.replace(regex, `<span style="color: ${keywordColors[keyword]}">$1</span>`);
+                    }, template);
+
+                    item.innerHTML = highlightedTemplate; // Use innerHTML to insert the HTML with styled spans
+
+                    item.style.cssText = `
+                            padding: 10px;
+                            cursor: pointer;
+                            transition: background-color 0.3s ease, color 0.3s ease;
+                            border-bottom: 1px solid #ddd;
+                            border-radius: 5px;
+                        `;
+
+                    item.addEventListener('mouseenter', () => {
+                        item.style.backgroundColor = '#1f2a30';
+                    });
+
+                    item.addEventListener('mouseleave', () => {
+                        item.style.backgroundColor = 'transparent';
+                    });
+
+                    item.addEventListener('click', () => {
+                        insertTextIntoChat(template);
+                        popup.style.display = 'none';
+                    });
+
+                    dropdown.appendChild(item);
+                });
+            }
+
+            button.addEventListener('click', () => {
+                const captionElement = document.querySelector('.x10l6tqk.x13vifvy.xds687c.x1ey2m1c.x17qophe');
+                if (captionElement) {
+                    popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+
+
+
+            toolbar.appendChild(button); // Додаємо кнопку в контейнер панелі інструментів
+        }
+    }
+
+
+    function checkAndAddButton() {
+        const toolbar = document.querySelector('.x1c4vz4f.xs83m0k');
+        if (toolbar) {
+            addCustomButton();
+        } else {
+            setTimeout(checkAndAddButton, 1000);
+        }
+    }
+
+    checkAndAddButton();
+})();
